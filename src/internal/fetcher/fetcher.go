@@ -53,14 +53,15 @@ func (f *HTTPFetcher) Fetch(ctx context.Context, url string) (*html.Node, error)
 	request.Header.Set("User-Agent", "crawlox")
 
 	response, err := f.client.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("error making the request %w", err)
+	}
 	// checking the type of the content
 	content := response.Header.Get("Content-Type")
+
 	if !strings.Contains(content, "text/html") {
-		request.Body.Close()
+		response.Body.Close()
 		return nil, fmt.Errorf("unexpected format returned got : %q", content)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("execution of the request %w", err)
 	}
 	defer func() {
 		if err := response.Body.Close(); err != nil {
@@ -87,7 +88,7 @@ func (f *HTTPFetcher) FetchWithRetry(ctx context.Context, url string, maxRetry i
 	var err error
 	for i := range maxRetry {
 		var doc *html.Node
-		doc, err := f.Fetch(ctx, url)
+		doc, err = f.Fetch(ctx, url)
 		if err == nil {
 			return doc, nil
 		}
